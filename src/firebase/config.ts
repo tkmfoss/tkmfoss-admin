@@ -24,6 +24,7 @@ export const COLLECTIONS = {
   ANNOUNCEMENTS: 'foss_announcements',
   EXECOM: 'foss_execom',
   REPORTS: 'foss_reports',
+  PROJECTS: 'foss_projects',
   SETTINGS: 'foss_settings'
 } as const;
 

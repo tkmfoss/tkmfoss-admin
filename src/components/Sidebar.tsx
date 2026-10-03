@@ -5,6 +5,7 @@ import {
   Bell,
   Users,
   FileText,
+  FolderGit2,
   LogOut,
   Terminal,
   ExternalLink
@@ -20,6 +21,7 @@ interface SidebarProps {
     announcements: number;
     execom: number;
     reports: number;
+    projects?: number;
   };
   isOpen: boolean;
   onCloseMobile: () => void;
@@ -118,6 +120,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <FileText size={18} />
             <span>Event Reports</span>
             {counts.reports > 0 && <span className="nav-badge">{counts.reports}</span>}
+          </button>
+
+          <button
+            onClick={() => handleTabClick('projects')}
+            className={`nav-item ${currentTab === 'projects' ? 'active' : ''}`}
+          >
+            <FolderGit2 size={18} />
+            <span>Projects</span>
+            {(counts.projects || 0) > 0 && <span className="nav-badge">{counts.projects}</span>}
           </button>
 
           {/* Quick link to main site */}

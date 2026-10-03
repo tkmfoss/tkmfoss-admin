@@ -166,7 +166,7 @@ export const ReportsManager: React.FC<ReportsManagerProps> = ({
     setSubmitting(true);
     const payload = {
       title,
-      eventId: eventId || undefined,
+      ...(eventId ? { eventId } : {}),
       eventDate,
       attendeeCount: Number(attendeeCount) || 0,
       speaker,

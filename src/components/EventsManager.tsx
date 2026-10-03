@@ -159,7 +159,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
       highlights,
       registrationUrl,
       registrationOpen,
-      maxSeats: maxSeats ? Number(maxSeats) : undefined,
+      ...(maxSeats ? { maxSeats: Number(maxSeats) } : {}),
       contactPerson
     };
 

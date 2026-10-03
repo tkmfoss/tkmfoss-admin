@@ -8,7 +8,27 @@ import {
   query
 } from 'firebase/firestore';
 import { db, COLLECTIONS } from '../firebase/config';
-import type { FosEvent, Announcement, ExecomMember, PostEventReport } from '../types';
+import type { FosEvent, Announcement, ExecomMember, PostEventReport, FossProject } from '../types';
+
+/* ============================================================
+   FIRESTORE PAYLOAD SANITIZER
+   Strips any field whose value is `undefined` so that Firestore
+   never throws "Unsupported field value: undefined".
+============================================================ */
+export function sanitizeFirestorePayload<T extends Record<string, any>>(obj: T): Record<string, any> {
+  const result: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value === undefined) {
+      continue; // completely omit undefined fields
+    }
+    if (value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+      result[key] = sanitizeFirestorePayload(value);
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
 
 /* ============================================================
    EVENTS SERVICE (100% FIRESTORE DYNAMIC)
@@ -43,20 +63,20 @@ export const subscribeEvents = (
 };
 
 export const addEvent = async (event: Omit<FosEvent, 'id'>): Promise<string> => {
-  const payload = {
+  const payload = sanitizeFirestorePayload({
     ...event,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
-  };
+  });
   const docRef = await addDoc(collection(db, COLLECTIONS.EVENTS), payload);
   return docRef.id;
 };
 
 export const updateEvent = async (id: string, data: Partial<FosEvent>): Promise<void> => {
-  const payload = {
+  const payload = sanitizeFirestorePayload({
     ...data,
     updatedAt: new Date().toISOString()
-  };
+  });
   const docRef = doc(db, COLLECTIONS.EVENTS, id);
   await updateDoc(docRef, payload);
 };
@@ -99,17 +119,21 @@ export const subscribeAnnouncements = (
 };
 
 export const addAnnouncement = async (announcement: Omit<Announcement, 'id'>): Promise<string> => {
-  const payload = {
+  const payload = sanitizeFirestorePayload({
     ...announcement,
     createdAt: new Date().toISOString()
-  };
+  });
   const docRef = await addDoc(collection(db, COLLECTIONS.ANNOUNCEMENTS), payload);
   return docRef.id;
 };
 
 export const updateAnnouncement = async (id: string, data: Partial<Announcement>): Promise<void> => {
+  const payload = sanitizeFirestorePayload({
+    ...data,
+    updatedAt: new Date().toISOString()
+  });
   const docRef = doc(db, COLLECTIONS.ANNOUNCEMENTS, id);
-  await updateDoc(docRef, data);
+  await updateDoc(docRef, payload);
 };
 
 export const deleteAnnouncement = async (id: string): Promise<void> => {
@@ -150,16 +174,21 @@ export const subscribeExecom = (
 };
 
 export const addExecomMember = async (member: Omit<ExecomMember, 'id'>): Promise<string> => {
-  const docRef = await addDoc(collection(db, COLLECTIONS.EXECOM), {
+  const payload = sanitizeFirestorePayload({
     ...member,
     createdAt: new Date().toISOString()
   });
+  const docRef = await addDoc(collection(db, COLLECTIONS.EXECOM), payload);
   return docRef.id;
 };
 
 export const updateExecomMember = async (id: string, data: Partial<ExecomMember>): Promise<void> => {
+  const payload = sanitizeFirestorePayload({
+    ...data,
+    updatedAt: new Date().toISOString()
+  });
   const docRef = doc(db, COLLECTIONS.EXECOM, id);
-  await updateDoc(docRef, data);
+  await updateDoc(docRef, payload);
 };
 
 export const deleteExecomMember = async (id: string): Promise<void> => {
@@ -200,20 +229,81 @@ export const subscribeReports = (
 };
 
 export const addReport = async (report: Omit<PostEventReport, 'id'>): Promise<string> => {
-  const payload = {
+  const payload = sanitizeFirestorePayload({
     ...report,
     createdAt: new Date().toISOString()
-  };
+  });
   const docRef = await addDoc(collection(db, COLLECTIONS.REPORTS), payload);
   return docRef.id;
 };
 
 export const updateReport = async (id: string, data: Partial<PostEventReport>): Promise<void> => {
+  const payload = sanitizeFirestorePayload({
+    ...data,
+    updatedAt: new Date().toISOString()
+  });
   const docRef = doc(db, COLLECTIONS.REPORTS, id);
-  await updateDoc(docRef, data);
+  await updateDoc(docRef, payload);
 };
 
 export const deleteReport = async (id: string): Promise<void> => {
   const docRef = doc(db, COLLECTIONS.REPORTS, id);
   await deleteDoc(docRef);
 };
+
+/* ============================================================
+   PROJECTS SERVICE (100% FIRESTORE DYNAMIC)
+============================================================ */
+
+export const subscribeProjects = (
+  onData: (projects: FossProject[]) => void,
+  onError?: (err: Error) => void
+) => {
+  try {
+    const q = query(collection(db, COLLECTIONS.PROJECTS));
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const list: FossProject[] = snapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data()
+        })) as FossProject[];
+        list.sort((a, b) => (b.stars || 0) - (a.stars || 0));
+        onData(list);
+      },
+      (error) => {
+        console.error('Firestore projects error:', error);
+        onError?.(error);
+      }
+    );
+    return unsubscribe;
+  } catch (err: any) {
+    console.error('Failed to attach Firestore listener for projects:', err);
+    return () => {};
+  }
+};
+
+export const addProject = async (project: Omit<FossProject, 'id'>): Promise<string> => {
+  const payload = sanitizeFirestorePayload({
+    ...project,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  });
+  const docRef = await addDoc(collection(db, COLLECTIONS.PROJECTS), payload);
+  return docRef.id;
+};
+
+export const updateProject = async (id: string, data: Partial<FossProject>): Promise<void> => {
+  const payload = sanitizeFirestorePayload({
+    ...data,
+    updatedAt: new Date().toISOString()
+  });
+  const docRef = doc(db, COLLECTIONS.PROJECTS, id);
+  await updateDoc(docRef, payload);
+};
+
+export const deleteProject = async (id: string): Promise<void> => {
+  const docRef = doc(db, COLLECTIONS.PROJECTS, id);
+  await deleteDoc(docRef);
+};
+

@@ -84,7 +84,17 @@ export async function fetchFullData(forceRefresh = false) {
     console.error('[API] Firestore reports fetch error:', err);
   }
 
-  // 5. Fetch Settings directly from Firestore
+  // 5. Fetch Projects directly from Firestore
+  let projects: any[] = [];
+  try {
+    const projectsSnap = await getDocs(collection(db, 'foss_projects'));
+    projects = projectsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    projects.sort((a: any, b: any) => (b.stars || 0) - (a.stars || 0));
+  } catch (err) {
+    console.error('[API] Firestore projects fetch error:', err);
+  }
+
+  // 6. Fetch Settings directly from Firestore
   try {
     const setSnap = await getDoc(doc(db, 'foss_settings', 'general'));
     if (setSnap.exists()) {
@@ -109,6 +119,7 @@ export async function fetchFullData(forceRefresh = false) {
       all: execomMembers
     },
     reports,
+    projects,
     settings
   };
 
@@ -200,6 +211,16 @@ export function handleApiRequest(req: IncomingMessage, res: ServerResponse): boo
           status: 'success',
           count: fullData.reports.length,
           reports: fullData.reports
+        });
+        return;
+      }
+
+      if (cleanUrl === '/api/projects') {
+        const fullData = await fetchFullData();
+        sendJson(200, {
+          status: 'success',
+          count: (fullData.projects || []).length,
+          projects: fullData.projects || []
         });
         return;
       }

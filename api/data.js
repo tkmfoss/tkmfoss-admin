@@ -58,7 +58,17 @@ export default async function handler(req, res) {
     reports = repSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
     reports.sort((a, b) => new Date(b.eventDate || 0).getTime() - new Date(a.eventDate || 0).getTime());
 
-    // 5. Fetch Settings
+    // 5. Fetch Projects
+    let projects = [];
+    try {
+      const projSnap = await getDocs(collection(db, 'foss_projects'));
+      projects = projSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      projects.sort((a, b) => (b.stars || 0) - (a.stars || 0));
+    } catch (e) {
+      console.error('[Vercel API] Projects fetch error:', e);
+    }
+
+    // 6. Fetch Settings
     const setSnap = await getDoc(doc(db, 'foss_settings', 'general'));
     if (setSnap.exists()) {
       settings = setSnap.data();
@@ -82,6 +92,7 @@ export default async function handler(req, res) {
         all: execomMembers
       },
       reports,
+      projects,
       settings
     });
   } catch (err) {

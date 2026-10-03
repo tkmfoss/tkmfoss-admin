@@ -9,12 +9,14 @@ import { EventsManager } from './components/EventsManager';
 import { AnnouncementsManager } from './components/AnnouncementsManager';
 import { ExecomManager } from './components/ExecomManager';
 import { ReportsManager } from './components/ReportsManager';
-import { FosEvent, Announcement, ExecomMember, PostEventReport, ActiveTab } from './types';
+import { ProjectsManager } from './components/ProjectsManager';
+import { FosEvent, Announcement, ExecomMember, PostEventReport, FossProject, ActiveTab } from './types';
 import {
   subscribeEvents,
   subscribeAnnouncements,
   subscribeExecom,
-  subscribeReports
+  subscribeReports,
+  subscribeProjects
 } from './services/dataService';
 import { Terminal, Loader2 } from 'lucide-react';
 
@@ -32,6 +34,7 @@ const AdminPortal: React.FC = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [execom, setExecom] = useState<ExecomMember[]>([]);
   const [reports, setReports] = useState<PostEventReport[]>([]);
+  const [projects, setProjects] = useState<FossProject[]>([]);
   const [firebaseActive, setFirebaseActive] = useState(true);
 
   // Subscribe to real-time collections
@@ -64,6 +67,13 @@ const AdminPortal: React.FC = () => {
     unsubs.push(
       subscribeReports(
         (data) => setReports(data),
+        () => setFirebaseActive(false)
+      )
+    );
+
+    unsubs.push(
+      subscribeProjects(
+        (data) => setProjects(data),
         () => setFirebaseActive(false)
       )
     );
@@ -132,7 +142,8 @@ const AdminPortal: React.FC = () => {
           events: events.length,
           announcements: announcements.length,
           execom: execom.length,
-          reports: reports.length
+          reports: reports.length,
+          projects: projects.length
         }}
         isOpen={mobileSidebarOpen}
         onCloseMobile={() => setMobileSidebarOpen(false)}
@@ -192,6 +203,15 @@ const AdminPortal: React.FC = () => {
             <ReportsManager
               reports={reports}
               events={events}
+              searchQuery={searchQuery}
+              isCreateModalOpen={createModalTrigger}
+              onCloseCreateModal={() => setCreateModalTrigger(false)}
+            />
+          )}
+
+          {currentTab === 'projects' && (
+            <ProjectsManager
+              projects={projects}
               searchQuery={searchQuery}
               isCreateModalOpen={createModalTrigger}
               onCloseCreateModal={() => setCreateModalTrigger(false)}

@@ -78,7 +78,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               alignItems: 'flex-start',
               gap: '12px',
               animation: 'slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-              fontFamily: '"Plus Jakarta Sans", sans-serif'
+              fontFamily: '"Space Grotesk", sans-serif'
             }}
           >
             <div style={{ marginTop: '2px', flexShrink: 0 }}>

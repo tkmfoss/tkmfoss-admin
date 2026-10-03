@@ -31,6 +31,8 @@ export const Header: React.FC<HeaderProps> = ({
       case 'announcements': return 'Announcements & Alerts';
       case 'execom': return 'Execom Leadership';
       case 'reports': return 'Post-Event Reports';
+      case 'projects': return 'Open Source Projects';
+      default: return 'Control Center';
     }
   };
 
@@ -40,6 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
       case 'announcements': return 'New Alert';
       case 'execom': return 'Add Member';
       case 'reports': return 'New Report';
+      case 'projects': return 'New Project';
       default: return 'Quick Add';
     }
   };
