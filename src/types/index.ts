@@ -80,4 +80,4 @@ export interface ClubSettings {
   cloudinaryUploadPreset?: string;
 }
 
-export type ActiveTab = 'overview' | 'events' | 'announcements' | 'execom' | 'reports' | 'settings';
+export type ActiveTab = 'overview' | 'events' | 'announcements' | 'execom' | 'reports';

@@ -3,7 +3,6 @@ import {
   Menu,
   Search,
   Plus,
-  Radio,
   Layers
 } from 'lucide-react';
 import { ActiveTab } from '../types';
@@ -32,7 +31,6 @@ export const Header: React.FC<HeaderProps> = ({
       case 'announcements': return 'Announcements & Alerts';
       case 'execom': return 'Execom Leadership';
       case 'reports': return 'Post-Event Reports';
-      case 'settings': return 'Cloud & Configuration';
     }
   };
 
@@ -51,9 +49,8 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="topbar-left">
         <button
           onClick={onToggleMobileMenu}
-          className="btn btn-secondary btn-icon"
-          style={{ display: 'none' }}
-          id="mobile-menu-btn"
+          className="btn btn-secondary btn-icon mobile-menu-btn"
+          aria-label="Toggle Navigation Menu"
         >
           <Menu size={18} />
         </button>
@@ -66,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({
 
       <div className="topbar-right">
         {/* Search Input (visible on content tabs) */}
-        {currentTab !== 'overview' && currentTab !== 'settings' && (
+        {currentTab !== 'overview' && (
           <div className="search-box">
             <Search size={16} color="var(--text-muted)" />
             <input
@@ -78,28 +75,8 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         )}
 
-        {/* Live sync badge */}
-        <div
-          title={firebaseActive ? "Connected to Firebase Firestore & Auth" : "Running in Local Offline Mode"}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: '0.75rem',
-            fontFamily: 'var(--font-mono)',
-            padding: '5px 10px',
-            borderRadius: '99px',
-            background: firebaseActive ? 'rgba(0, 255, 102, 0.1)' : 'rgba(251, 191, 36, 0.1)',
-            border: `1px solid ${firebaseActive ? 'rgba(0, 255, 102, 0.25)' : 'rgba(251, 191, 36, 0.25)'}`,
-            color: firebaseActive ? 'var(--accent-green)' : 'var(--accent-amber)'
-          }}
-        >
-          <Radio size={12} className={firebaseActive ? "pulse-icon" : ""} />
-          <span>{firebaseActive ? 'Firebase Live' : 'Local Cached'}</span>
-        </div>
-
         {/* Action Button */}
-        {currentTab !== 'overview' && currentTab !== 'settings' && (
+        {currentTab !== 'overview' && (
           <button
             onClick={onOpenCreateModal}
             className="btn btn-primary"

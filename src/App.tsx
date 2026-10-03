@@ -9,7 +9,6 @@ import { EventsManager } from './components/EventsManager';
 import { AnnouncementsManager } from './components/AnnouncementsManager';
 import { ExecomManager } from './components/ExecomManager';
 import { ReportsManager } from './components/ReportsManager';
-import { SettingsManager } from './components/SettingsManager';
 import { FosEvent, Announcement, ExecomMember, PostEventReport, ActiveTab } from './types';
 import {
   subscribeEvents,
@@ -20,7 +19,7 @@ import {
 import { Terminal, Loader2 } from 'lucide-react';
 
 const AdminPortal: React.FC = () => {
-  const { user, isGuestAdmin, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const { info } = useToast();
 
   const [currentTab, setCurrentTab] = useState<ActiveTab>('overview');
@@ -37,7 +36,7 @@ const AdminPortal: React.FC = () => {
 
   // Subscribe to real-time collections
   useEffect(() => {
-    if (!user && !isGuestAdmin) return;
+    if (!user) return;
 
     const unsubs: (() => void)[] = [];
 
@@ -72,7 +71,7 @@ const AdminPortal: React.FC = () => {
     return () => {
       unsubs.forEach((unsub) => unsub && unsub());
     };
-  }, [user, isGuestAdmin]);
+  }, [user]);
 
   // Reset search when tab changes
   useEffect(() => {
@@ -112,7 +111,7 @@ const AdminPortal: React.FC = () => {
   }
 
   // Not logged in -> Show Login
-  if (!user && !isGuestAdmin) {
+  if (!user) {
     return <LoginModal />;
   }
 
@@ -196,15 +195,6 @@ const AdminPortal: React.FC = () => {
               searchQuery={searchQuery}
               isCreateModalOpen={createModalTrigger}
               onCloseCreateModal={() => setCreateModalTrigger(false)}
-            />
-          )}
-
-          {currentTab === 'settings' && (
-            <SettingsManager
-              events={events}
-              announcements={announcements}
-              execom={execom}
-              reports={reports}
             />
           )}
         </main>

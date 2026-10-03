@@ -5,7 +5,6 @@ import {
   Bell,
   Users,
   FileText,
-  Settings,
   LogOut,
   Terminal,
   ExternalLink
@@ -33,7 +32,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isOpen,
   onCloseMobile
 }) => {
-  const { userDisplayName, userEmail, userPhoto, logout, isGuestAdmin } = useAuth();
+  const { logout } = useAuth();
 
   const handleTabClick = (tab: ActiveTab) => {
     onSelectTab(tab);
@@ -121,16 +120,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {counts.reports > 0 && <span className="nav-badge">{counts.reports}</span>}
           </button>
 
-          <div className="nav-section-label" style={{ marginTop: '16px' }}>System & Integration</div>
-
-          <button
-            onClick={() => handleTabClick('settings')}
-            className={`nav-item ${currentTab === 'settings' ? 'active' : ''}`}
-          >
-            <Settings size={18} />
-            <span>Cloud & Settings</span>
-          </button>
-
           {/* Quick link to main site */}
           <a
             href="https://foss.tkmce.ac.in"
@@ -144,26 +133,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </a>
         </nav>
 
-        {/* Footer Admin Card */}
+        {/* Footer Logout */}
         <div className="sidebar-footer">
-          <div className="admin-badge-card">
-            <img src={userPhoto} alt={userDisplayName} className="admin-avatar" />
-            <div className="admin-info">
-              <div className="admin-name" title={userDisplayName}>{userDisplayName}</div>
-              <div className="admin-status">
-                <span className="status-dot"></span>
-                <span>{isGuestAdmin ? 'Demo Session' : 'Firebase Sync'}</span>
-              </div>
-            </div>
-            <button
-              onClick={() => logout()}
-              title="Sign Out"
-              className="btn btn-ghost btn-sm btn-icon"
-              style={{ color: 'var(--accent-red)' }}
-            >
-              <LogOut size={16} />
-            </button>
-          </div>
+          <button
+            onClick={() => logout()}
+            className="nav-item"
+            style={{
+              width: '100%',
+              color: 'var(--accent-red)',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '10px 14px'
+            }}
+          >
+            <LogOut size={16} />
+            <span>Sign Out</span>
+          </button>
         </div>
       </aside>
     </>

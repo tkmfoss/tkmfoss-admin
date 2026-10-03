@@ -9,9 +9,7 @@ import {
   Upload,
   X,
   Plus,
-  Check,
-  Tag,
-  AlertCircle
+  Maximize2
 } from 'lucide-react';
 import { FosEvent, EventCategory, EventStatus } from '../types';
 import { addEvent, updateEvent, deleteEvent } from '../services/dataService';
@@ -35,6 +33,9 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
 
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+
+  // Full-size poster preview state
+  const [previewPoster, setPreviewPoster] = useState<{ url: string; title: string } | null>(null);
 
   // Edit / Create state
   const [editingEvent, setEditingEvent] = useState<FosEvent | null>(null);
@@ -237,7 +238,16 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
       <div className="card-grid">
         {filteredEvents.map((ev) => (
           <div key={ev.id} className="item-card">
-            <div className="card-media">
+            <div
+              className="card-media"
+              style={{ cursor: 'pointer' }}
+              onClick={() => {
+                if (ev.coverImage) {
+                  setPreviewPoster({ url: ev.coverImage, title: ev.title });
+                }
+              }}
+              title="Click to view full size poster"
+            >
               <img
                 src={ev.coverImage || 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80'}
                 alt={ev.title}
@@ -299,26 +309,50 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
               {/* Card Footer */}
               <div className="card-footer">
                 <div>
-                  {ev.registrationUrl ? (
-                    <a
-                      href={ev.registrationUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        fontSize: '0.75rem',
-                        color: 'var(--accent-cyan)',
-                        fontWeight: 600
-                      }}
-                    >
-                      <ExternalLink size={12} />
-                      <span>{ev.registrationOpen ? 'Registration Active' : 'Reg Closed'}</span>
-                    </a>
-                  ) : (
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>No Reg Link</span>
-                  )}
+                  {(() => {
+                    const isPast = ev.status === 'COMPLETED' || (ev.date && ev.date < new Date().toISOString().split('T')[0]);
+                    if (isPast) {
+                      return (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            fontSize: '0.75rem',
+                            color: 'var(--text-muted)',
+                            opacity: 0.65,
+                            cursor: 'not-allowed',
+                            pointerEvents: 'none',
+                            userSelect: 'none'
+                          }}
+                          title="Event date is over. Registration is not available."
+                        >
+                          <span>Reg Closed (Past Event)</span>
+                        </span>
+                      );
+                    }
+                    if (ev.registrationUrl) {
+                      return (
+                        <a
+                          href={ev.registrationUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            fontSize: '0.75rem',
+                            color: ev.registrationOpen ? 'var(--accent-green)' : 'var(--text-muted)',
+                            fontWeight: 600
+                          }}
+                        >
+                          <ExternalLink size={12} />
+                          <span>{ev.registrationOpen ? 'Registration Active' : 'Reg Closed'}</span>
+                        </a>
+                      );
+                    }
+                    return <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>No Reg Link</span>;
+                  })()}
                 </div>
 
                 <div style={{ display: 'flex', gap: '6px' }}>
@@ -609,6 +643,88 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Poster Preview Modal */}
+      {previewPoster && (
+        <div
+          className="modal-overlay"
+          onClick={() => setPreviewPoster(null)}
+          style={{ zIndex: 1100 }}
+        >
+          <div
+            className="modal-content"
+            style={{
+              maxWidth: '800px',
+              width: '90vw',
+              maxHeight: '92vh',
+              padding: '20px',
+              background: '#090a0d',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header" style={{ marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Maximize2 size={16} color="var(--accent-green)" />
+                <h3 className="modal-title" style={{ fontSize: '15px' }}>{previewPoster.title}</h3>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <a
+                  href={previewPoster.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}
+                >
+                  <ExternalLink size={13} />
+                  <span>Open Original</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setPreviewPoster(null)}
+                  className="btn-icon"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+            <div
+              style={{
+                flex: 1,
+                minHeight: 0,
+                overflow: 'auto',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#000',
+                padding: '12px',
+                border: '1px solid var(--border-subtle)'
+              }}
+            >
+              <img
+                src={previewPoster.url}
+                alt={previewPoster.title}
+                style={{ maxWidth: '100%', maxHeight: '68vh', objectFit: 'contain' }}
+              />
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginTop: '12px',
+                fontSize: '12px',
+                color: 'var(--text-muted)',
+                fontFamily: 'var(--font-mono)'
+              }}
+            >
+              <span>FULL-RESOLUTION POSTER ARCHIVE</span>
+              <span>1:1 UNCOMPRESSED ORIGINAL</span>
+            </div>
           </div>
         </div>
       )}

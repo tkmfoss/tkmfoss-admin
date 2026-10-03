@@ -7,8 +7,7 @@ import {
   X,
   Upload,
   Mail,
-  GraduationCap,
-  Globe
+  GraduationCap
 } from 'lucide-react';
 import type { ExecomMember } from '../types';
 import { addExecomMember, updateExecomMember, deleteExecomMember } from '../services/dataService';
@@ -183,14 +182,14 @@ export const ExecomManager: React.FC<ExecomManagerProps> = ({
             onClick={() => setTenureFilter('CURRENT')}
             className={`filter-pill ${tenureFilter === 'CURRENT' ? 'active' : ''}`}
           >
-            🌟 Current Execom (Active)
+            [ACTIVE] Current Execom
           </button>
 
           <button
             onClick={() => setTenureFilter('PAST')}
             className={`filter-pill ${tenureFilter === 'PAST' ? 'active' : ''}`}
           >
-            🏛️ Past Execom (Alumni)
+            [ARCHIVE] Past Execom
           </button>
 
           <button
@@ -387,7 +386,7 @@ export const ExecomManager: React.FC<ExecomManagerProps> = ({
                       type="text"
                       required
                       className="form-control"
-                      placeholder="e.g. Muhammed Rasal"
+                      placeholder="Member Full Name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                     />
