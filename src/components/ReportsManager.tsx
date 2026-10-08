@@ -3,19 +3,17 @@ import {
   FileText,
   Calendar,
   Users,
-  ExternalLink,
   Plus,
   Edit2,
   Trash2,
   X,
   Upload,
   Image,
-  FolderOpen,
-  CheckSquare
+  FolderOpen
 } from 'lucide-react';
 import { PostEventReport, FosEvent } from '../types';
 import { addReport, updateReport, deleteReport } from '../services/dataService';
-import { smartUploadImage } from '../services/cloudinaryService';
+import { smartUploadImage, formatBytes } from '../services/cloudinaryService';
 import { useToast } from '../context/ToastContext';
 
 interface ReportsManagerProps {
@@ -123,11 +121,18 @@ export const ReportsManager: React.FC<ReportsManagerProps> = ({
     if (!file) return;
 
     setUploadingImage(true);
-    info('Uploading cover image...');
+    info('Compressing & uploading cover photo...');
     try {
-      const res = await smartUploadImage(file);
+      const res = await smartUploadImage(file, 'auto', {
+        maxWidth: 1920,
+        maxHeight: 1920,
+        quality: 0.82
+      });
       setCoverImage(res.url);
-      success('Cover image uploaded!');
+      const compMsg = res.compression && res.compression.savedPercent > 0
+        ? ` (Optimized: ${formatBytes(res.compression.originalSize)} → ${formatBytes(res.compression.compressedSize)}, -${res.compression.savedPercent}%)`
+        : '';
+      success(`Cover image uploaded (${res.service})!${compMsg}`);
     } catch (err: any) {
       error(err.message || 'Cover upload failed.');
     } finally {
@@ -140,15 +145,31 @@ export const ReportsManager: React.FC<ReportsManagerProps> = ({
     if (!files || files.length === 0) return;
 
     setUploadingImage(true);
-    info(`Uploading ${files.length} gallery photos...`);
+    info(`Compressing & uploading ${files.length} gallery photos...`);
     try {
       const newUrls: string[] = [];
+      let totalOriginal = 0;
+      let totalCompressed = 0;
+
       for (let i = 0; i < files.length; i++) {
-        const res = await smartUploadImage(files[i]);
+        const res = await smartUploadImage(files[i], 'auto', {
+          maxWidth: 1600,
+          maxHeight: 1600,
+          quality: 0.80
+        });
         newUrls.push(res.url);
+        if (res.compression) {
+          totalOriginal += res.compression.originalSize;
+          totalCompressed += res.compression.compressedSize;
+        }
       }
+
       setGallery([...gallery, ...newUrls]);
-      success(`Uploaded ${newUrls.length} photos to report gallery.`);
+      const savedPercent = totalOriginal > 0 ? Math.round(((totalOriginal - totalCompressed) / totalOriginal) * 100) : 0;
+      const compMsg = savedPercent > 0
+        ? ` (Optimized storage: ${formatBytes(totalOriginal)} → ${formatBytes(totalCompressed)}, -${savedPercent}%)`
+        : '';
+      success(`Uploaded ${newUrls.length} photos to report gallery!${compMsg}`);
     } catch (err: any) {
       error(err.message || 'Gallery upload failed.');
     } finally {
@@ -501,7 +522,7 @@ export const ReportsManager: React.FC<ReportsManagerProps> = ({
                 {/* Cover & Gallery */}
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">Cover Photo</label>
+                    <label className="form-label">Cover Photo (Auto-compressed)</label>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <input
                         type="text"
@@ -525,7 +546,7 @@ export const ReportsManager: React.FC<ReportsManagerProps> = ({
 
                   <div className="form-group">
                     <label className="form-label">
-                      <span>Gallery Photos ({gallery.length})</span>
+                      <span>Gallery Photos ({gallery.length} - Auto-compressed)</span>
                     </label>
                     <label className="btn btn-secondary" style={{ cursor: 'pointer', width: '100%' }}>
                       <Image size={14} />

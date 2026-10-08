@@ -9,11 +9,12 @@ import {
   Upload,
   X,
   Plus,
-  Maximize2
+  Maximize2,
+  Sparkles
 } from 'lucide-react';
 import { FosEvent, EventCategory, EventStatus } from '../types';
 import { addEvent, updateEvent, deleteEvent } from '../services/dataService';
-import { smartUploadImage } from '../services/cloudinaryService';
+import { smartUploadImage, formatBytes } from '../services/cloudinaryService';
 import { useToast } from '../context/ToastContext';
 
 interface EventsManagerProps {
@@ -126,11 +127,18 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
     if (!file) return;
 
     setUploadingImage(true);
-    info('Uploading cover image...');
+    info('Compressing & uploading event poster...');
     try {
-      const res = await smartUploadImage(file);
+      const res = await smartUploadImage(file, 'auto', {
+        maxWidth: 1920,
+        maxHeight: 1920,
+        quality: 0.82
+      });
       setCoverImage(res.url);
-      success(`Image uploaded successfully (${res.service})!`);
+      const compMsg = res.compression && res.compression.savedPercent > 0
+        ? ` (Optimized by ${res.compression.savedPercent}%: ${formatBytes(res.compression.originalSize)} → ${formatBytes(res.compression.compressedSize)})`
+        : '';
+      success(`Poster uploaded (${res.service})!${compMsg}`);
     } catch (err: any) {
       error(err.message || 'Image upload failed.');
     } finally {
@@ -519,9 +527,9 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
 
                 {/* Image Upload / Poster */}
                 <div className="form-group">
-                  <label className="form-label">
+                  <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span>Cover Photo / Poster</span>
-                    <span className="form-label-desc">Cloudinary / Firebase / Direct URL</span>
+                    <span className="form-label-desc">Auto-compressed WebP enabled</span>
                   </label>
 
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -533,7 +541,7 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                       onChange={(e) => setCoverImage(e.target.value)}
                       style={{ flex: 1 }}
                     />
-                    <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', margin: 0 }}>
+                    <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <Upload size={14} />
                       <span>{uploadingImage ? 'Uploading...' : 'Upload'}</span>
                       <input
@@ -547,8 +555,14 @@ export const EventsManager: React.FC<EventsManagerProps> = ({
                   </div>
 
                   {coverImage && (
-                    <div className="upload-preview" style={{ marginTop: '10px' }}>
-                      <img src={coverImage} alt="Cover Preview" />
+                    <div style={{ marginTop: '10px' }}>
+                      <div className="upload-preview">
+                        <img src={coverImage} alt="Cover Preview" />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                        <Sparkles size={12} style={{ color: 'var(--accent-green)' }} />
+                        <span>Poster is automatically compressed to WebP on upload to optimize cloud storage and load performance.</span>
+                      </div>
                     </div>
                   )}
                 </div>

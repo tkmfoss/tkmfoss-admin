@@ -944,6 +944,22 @@ textarea.form-control {
   opacity: 1;
 }
 
+/* Image Cropper Modal & Utils */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@media (max-width: 640px) {
+  .crop-modal-layout {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* Filter Bar */
 .filter-bar {
   display: flex;

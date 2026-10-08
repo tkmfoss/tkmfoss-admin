@@ -7,12 +7,15 @@ import {
   X,
   Upload,
   Mail,
-  GraduationCap
+  GraduationCap,
+  Crop,
+  Sparkles
 } from 'lucide-react';
 import type { ExecomMember } from '../types';
 import { addExecomMember, updateExecomMember, deleteExecomMember } from '../services/dataService';
 import { smartUploadImage } from '../services/cloudinaryService';
 import { useToast } from '../context/ToastContext';
+import { ImageCropModal } from './ImageCropModal';
 
 interface ExecomManagerProps {
   execom: ExecomMember[];
@@ -49,6 +52,18 @@ export const ExecomManager: React.FC<ExecomManagerProps> = ({
 
   const [uploadingImage, setUploadingImage] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Image Cropper Modal State
+  const [cropModal, setCropModal] = useState<{
+    isOpen: boolean;
+    imageSrc: string;
+    fileName: string;
+    originalFile?: File;
+  }>({
+    isOpen: false,
+    imageSrc: '',
+    fileName: ''
+  });
 
   // Collect unique tenures dynamically
   const existingTenures = Array.from(new Set(execom.map((m) => m.tenure || '2025-26'))).sort().reverse();
@@ -90,18 +105,79 @@ export const ExecomManager: React.FC<ExecomManagerProps> = ({
     }
   }, [isCreateModalOpen]);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // When a user selects a file to upload, open the Cropper Modal
+  const handleImageFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Reset target value so selecting the same file triggers onChange
+    e.target.value = '';
+
+    const objectUrl = URL.createObjectURL(file);
+    setCropModal({
+      isOpen: true,
+      imageSrc: objectUrl,
+      fileName: file.name,
+      originalFile: file
+    });
+  };
+
+  // Open cropper for currently entered photo URL
+  const handleOpenCropCurrent = () => {
+    if (!photo) return;
+    setCropModal({
+      isOpen: true,
+      imageSrc: photo,
+      fileName: `${name ? name.toLowerCase().replace(/\s+/g, '_') : 'member'}_avatar.webp`
+    });
+  };
+
+  // Called when user clicks "Crop & Apply" in the cropper
+  const handleCropComplete = async (croppedFile: File) => {
     setUploadingImage(true);
-    info('Uploading member avatar...');
+    info('Optimizing & uploading cropped avatar...');
     try {
-      const res = await smartUploadImage(file);
+      const res = await smartUploadImage(croppedFile, 'auto', {
+        maxWidth: 800,
+        maxHeight: 800,
+        quality: 0.88
+      });
       setPhoto(res.url);
-      success(`Member photo uploaded (${res.service})!`);
+      const savedStr = res.compression && res.compression.savedPercent > 0
+        ? ` (Optimized: -${res.compression.savedPercent}%)`
+        : '';
+      success(`Member photo cropped & uploaded (${res.service})!${savedStr}`);
+      setCropModal((prev) => ({ ...prev, isOpen: false }));
     } catch (err: any) {
       error(err.message || 'Avatar upload failed.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  // Called when user clicks "Use Original (Skip Crop)"
+  const handleSkipCrop = async () => {
+    if (!cropModal.originalFile) {
+      setCropModal((prev) => ({ ...prev, isOpen: false }));
+      return;
+    }
+    const file = cropModal.originalFile;
+    setUploadingImage(true);
+    info('Optimizing & uploading member photo...');
+    try {
+      const res = await smartUploadImage(file, 'auto', {
+        maxWidth: 800,
+        maxHeight: 800,
+        quality: 0.85
+      });
+      setPhoto(res.url);
+      const savedStr = res.compression && res.compression.savedPercent > 0
+        ? ` (Optimized: -${res.compression.savedPercent}%)`
+        : '';
+      success(`Photo uploaded (${res.service})!${savedStr}`);
+      setCropModal((prev) => ({ ...prev, isOpen: false }));
+    } catch (err: any) {
+      error(err.message || 'Photo upload failed.');
     } finally {
       setUploadingImage(false);
     }
@@ -457,32 +533,84 @@ export const ExecomManager: React.FC<ExecomManagerProps> = ({
                   </div>
                 </div>
 
-                {/* Avatar Photo */}
+                {/* Avatar Photo with Live Form Preview and Cropper */}
                 <div className="form-group">
-                  <label className="form-label">
+                  <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span>Profile Photo</span>
-                    <span className="form-label-desc">Cloudinary / Firebase / Direct URL</span>
+                    <span className="form-label-desc">Cropping & WebP compression enabled</span>
                   </label>
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Image URL or upload"
-                      value={photo}
-                      onChange={(e) => setPhoto(e.target.value)}
-                      style={{ flex: 1 }}
-                    />
-                    <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', margin: 0 }}>
-                      <Upload size={14} />
-                      <span>{uploadingImage ? 'Uploading...' : 'Upload'}</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        style={{ display: 'none' }}
-                        disabled={uploadingImage}
+
+                  <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+                    {/* Live Thumbnail Preview */}
+                    <div
+                      style={{
+                        width: '52px',
+                        height: '52px',
+                        borderRadius: '50%',
+                        overflow: 'hidden',
+                        flexShrink: 0,
+                        border: '2px solid var(--accent-green)',
+                        background: '#141822',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 0 10px var(--accent-green-glow)'
+                      }}
+                      title="Current Avatar Preview"
+                    >
+                      <img
+                        src={photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'Member')}&background=141822&color=00ff66&size=200`}
+                        alt="Avatar Preview"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'Member')}&background=141822&color=00ff66&size=200`;
+                        }}
                       />
-                    </label>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="Image URL or upload / crop photo"
+                          value={photo}
+                          onChange={(e) => setPhoto(e.target.value)}
+                          style={{ flex: 1 }}
+                        />
+
+                        {/* Crop button (active if photo is set) */}
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={handleOpenCropCurrent}
+                          disabled={!photo || uploadingImage}
+                          title={photo ? 'Crop and adjust current photo' : 'Select or upload a photo first to crop'}
+                          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          <Crop size={14} />
+                          <span>Crop</span>
+                        </button>
+
+                        {/* Upload button (triggers file picker which opens crop modal) */}
+                        <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Upload size={14} />
+                          <span>{uploadingImage ? 'Uploading...' : 'Upload'}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageFileSelected}
+                            style={{ display: 'none' }}
+                            disabled={uploadingImage}
+                          />
+                        </label>
+                      </div>
+
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Sparkles size={12} style={{ color: 'var(--accent-green)' }} />
+                        <span>Upload will open the cropper tool to perfectly frame the avatar and compress storage.</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -544,6 +672,20 @@ export const ExecomManager: React.FC<ExecomManagerProps> = ({
           </div>
         </div>
       )}
+      {/* Image Cropper Modal for Execom Photo */}
+      <ImageCropModal
+        isOpen={cropModal.isOpen}
+        imageSrc={cropModal.imageSrc}
+        fileName={cropModal.fileName}
+        originalFile={cropModal.originalFile}
+        title="Crop & Optimize Execom Photo"
+        aspectRatio={1}
+        outputSize={600}
+        isUploading={uploadingImage}
+        onClose={() => setCropModal((prev) => ({ ...prev, isOpen: false }))}
+        onCropComplete={handleCropComplete}
+        onSkipCrop={cropModal.originalFile ? handleSkipCrop : undefined}
+      />
     </div>
   );
 };

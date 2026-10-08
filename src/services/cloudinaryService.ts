@@ -1,10 +1,28 @@
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../firebase/config';
+import {
+  compressImage,
+  type CompressedImageResult,
+  type CompressionOptions,
+  formatBytes
+} from '../utils/imageCompressor';
+
+export { formatBytes, compressImage, type CompressedImageResult, type CompressionOptions };
 
 export interface CloudinaryConfig {
   cloudName: string;
   uploadPreset: string;
   apiKey?: string;
+}
+
+export interface SmartUploadOptions extends CompressionOptions {
+  skipCompression?: boolean;
+}
+
+export interface SmartUploadResult {
+  url: string;
+  service: 'cloudinary' | 'firebase' | 'base64';
+  compression?: CompressedImageResult;
 }
 
 const STORAGE_KEY = 'tkmfoss_cloudinary_config';
@@ -75,20 +93,40 @@ export const fileToBase64 = (file: File): Promise<string> => {
 
 /**
  * Universal smart upload:
- * 1. Checks if Cloudinary is configured -> Uses Cloudinary
- * 2. Else tries Firebase Storage
- * 3. Fallback to Base64 data URL if storage rules require permission or keys pending
+ * 1. Automatically compresses image client-side to drastically minimize storage & bandwidth
+ * 2. Checks if Cloudinary is configured -> Uses Cloudinary
+ * 3. Else tries Firebase Storage
+ * 4. Fallback to Base64 data URL if storage rules require permission or keys pending
  */
 export const smartUploadImage = async (
   file: File, 
-  preferredService: 'auto' | 'cloudinary' | 'firebase' = 'auto'
-): Promise<{ url: string; service: 'cloudinary' | 'firebase' | 'base64' }> => {
+  preferredService: 'auto' | 'cloudinary' | 'firebase' = 'auto',
+  options?: SmartUploadOptions
+): Promise<SmartUploadResult> => {
+  let fileToUpload = file;
+  let compressionResult: CompressedImageResult | undefined;
+
+  // Perform client-side compression before uploading
+  if (!options?.skipCompression) {
+    try {
+      compressionResult = await compressImage(file, options);
+      fileToUpload = compressionResult.file;
+      if (compressionResult.savedPercent > 0) {
+        console.log(
+          `[ImageOptimizer] Compressed "${file.name}": ${formatBytes(compressionResult.originalSize)} → ${formatBytes(compressionResult.compressedSize)} (-${compressionResult.savedPercent}%)`
+        );
+      }
+    } catch (compErr) {
+      console.warn('Image compression failed, proceeding with original file:', compErr);
+    }
+  }
+
   const config = getCloudinaryConfig();
   
   if (preferredService === 'cloudinary' || (preferredService === 'auto' && config.cloudName && config.uploadPreset)) {
     try {
-      const url = await uploadToCloudinary(file);
-      return { url, service: 'cloudinary' };
+      const url = await uploadToCloudinary(fileToUpload);
+      return { url, service: 'cloudinary', compression: compressionResult };
     } catch (err) {
       console.warn('Cloudinary upload attempt failed, trying fallback...', err);
       if (preferredService === 'cloudinary') throw err;
@@ -96,11 +134,11 @@ export const smartUploadImage = async (
   }
 
   try {
-    const url = await uploadToFirebaseStorage(file);
-    return { url, service: 'firebase' };
+    const url = await uploadToFirebaseStorage(fileToUpload);
+    return { url, service: 'firebase', compression: compressionResult };
   } catch (fbErr) {
     console.warn('Firebase Storage upload failed (possibly storage rules or permission), using local data URL fallback:', fbErr);
-    const url = await fileToBase64(file);
-    return { url, service: 'base64' };
+    const url = await fileToBase64(fileToUpload);
+    return { url, service: 'base64', compression: compressionResult };
   }
 };
