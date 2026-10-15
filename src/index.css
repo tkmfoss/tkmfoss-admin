@@ -605,6 +605,16 @@ button, input, select, textarea {
   transform: scale(1.02);
 }
 
+.execom-avatar-img {
+  filter: grayscale(100%) contrast(115%);
+  transition: filter 0.3s ease, transform 0.3s ease;
+}
+
+.item-card:hover .execom-avatar-img {
+  filter: grayscale(0%) contrast(100%);
+  transform: scale(1.05);
+}
+
 .media-badge {
   position: absolute;
   top: 12px;

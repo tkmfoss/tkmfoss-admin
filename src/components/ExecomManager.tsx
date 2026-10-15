@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Users,
   Plus,
@@ -249,6 +249,22 @@ export const ExecomManager: React.FC<ExecomManagerProps> = ({
     return matchesSearch && matchesTenure;
   });
 
+  // Group members by tenure for structured horizontal year-by-year presentation
+  const groupedMembers = useMemo(() => {
+    const shouldGroup = tenureFilter === 'ALL' || tenureFilter === 'PAST';
+    if (!shouldGroup) {
+      return [{ tenure: tenureFilter, members: filteredMembers }];
+    }
+    const groups: Record<string, ExecomMember[]> = {};
+    filteredMembers.forEach((m) => {
+      const t = m.tenure || 'Past Cohort';
+      if (!groups[t]) groups[t] = [];
+      groups[t].push(m);
+    });
+    const sorted = Object.keys(groups).sort().reverse();
+    return sorted.map((t) => ({ tenure: t, members: groups[t] }));
+  }, [filteredMembers, tenureFilter]);
+
   return (
     <div>
       {/* Tenure Tabs */}
@@ -287,9 +303,36 @@ export const ExecomManager: React.FC<ExecomManagerProps> = ({
         </div>
       </div>
 
-      {/* Member Cards Grid */}
-      <div className="card-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
-        {filteredMembers.map((m) => (
+      {/* Member Cards Grouped by Tenure with Horizontal Markings */}
+      {groupedMembers.map(({ tenure, members }) => (
+        <div key={tenure} style={{ marginBottom: '36px' }}>
+          {groupedMembers.length > 1 && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              margin: '28px 0 18px',
+              gap: '14px'
+            }}>
+              <div style={{ flex: 1, height: '1px', background: 'var(--border-medium)' }} />
+              <span style={{
+                padding: '4px 14px',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--accent-green)',
+                color: 'var(--accent-green)',
+                fontSize: '0.8125rem',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 700,
+                borderRadius: '4px',
+                letterSpacing: '0.05em'
+              }}>
+                EXECOM TENURE {tenure} ({members.length})
+              </span>
+              <div style={{ flex: 1, height: '1px', background: 'var(--border-medium)' }} />
+            </div>
+          )}
+
+          <div className="card-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+            {members.map((m) => (
           <div
             key={m.id}
             className="item-card"
@@ -313,6 +356,7 @@ export const ExecomManager: React.FC<ExecomManagerProps> = ({
               <img
                 src={m.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.name)}&background=00ff66&color=000&size=200`}
                 alt={m.name}
+                className="execom-avatar-img"
                 style={{
                   width: '100%',
                   height: '100%',
@@ -418,8 +462,8 @@ export const ExecomManager: React.FC<ExecomManagerProps> = ({
               </button>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
 
       {filteredMembers.length === 0 && (
         <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>

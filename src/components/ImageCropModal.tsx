@@ -492,7 +492,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
                 }}
               >
                 <Sliders size={13} />
-                <span>Live Previews</span>
+                <span>Image Previews</span>
               </div>
 
               {/* Circle Avatar Live Preview */}

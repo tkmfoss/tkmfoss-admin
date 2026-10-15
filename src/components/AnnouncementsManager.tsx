@@ -222,7 +222,7 @@ export const AnnouncementsManager: React.FC<AnnouncementsManagerProps> = ({
                   title="Toggle Active/Inactive"
                 >
                   {a.isActive ? <Eye size={13} color="var(--accent-green)" /> : <EyeOff size={13} />}
-                  <span>{a.isActive ? 'Live' : 'Hidden'}</span>
+                  <span>{a.isActive ? 'Active' : 'Hidden'}</span>
                 </button>
 
                 <button
@@ -364,7 +364,7 @@ export const AnnouncementsManager: React.FC<AnnouncementsManagerProps> = ({
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Live Active State</label>
+                    <label className="form-label">Active State</label>
                     <div style={{ display: 'flex', alignItems: 'center', height: '42px', gap: '10px' }}>
                       <input
                         type="checkbox"
