@@ -462,6 +462,8 @@ export const ExecomManager: React.FC<ExecomManagerProps> = ({
               </button>
             </div>
           </div>
+            ))}
+          </div>
         </div>
       ))}
 
